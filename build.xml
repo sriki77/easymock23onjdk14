@@ -1,0 +1,237 @@
+<project name="THBS Service Modeler" default="build">
+
+	<description>
+    	Build file for Easy Mock 2.3 on JDK 1.4
+	</description>
+
+	<!--
+	_________________
+		  
+	Properties File
+	_________________
+	   
+	-->
+	<property file="easymock.env" />
+
+	<!--
+	_________________
+	  
+	Compile Classpath
+	_________________
+	    
+	-->
+	<path id="classpath">
+		<fileset dir="${EM_LIB}" includes="**/*.jar" />
+	</path>
+
+
+	<!--
+	_________________
+	  
+	Test Classpath
+	_________________
+	    
+	-->
+
+	<path id="test.classpath">
+		<pathelement location="${EM_CLS}" />
+		<pathelement location="${EM_CONFIG}" />
+		<pathelement location="${EM_TEST}" />
+		<path refid="classpath" />
+	</path>
+
+
+	<!--
+	_________________
+	  
+	Compile Code
+	_________________
+	    
+	-->
+
+	<!-- compile Java source files -->
+	<target name="compile" description="Compiles the Easy Mock code">
+		<mkdir dir="${EM_CLS}" />
+		<javac srcdir="${EM_SRC}" destdir="${EM_CLS}" source="1.4" target="1.4" debug="yes" fork="yes" executable="${JAVA_HOME}/bin/javac">
+			<classpath refid="classpath" />
+
+		</javac>
+	</target>
+
+	<!--
+	_________________
+	  
+	Re-compile Code
+	_________________
+	    
+	-->
+
+	<!-- compile Java source files -->
+	<target name="recompile" depends="clean" description="Re-Compiles the entire Easy Mock code">
+		<antcall target="compile" />
+		<parallel>
+			<antcall target="javadoc" />
+		</parallel>
+	</target>
+
+	<!--
+	___________________________
+	  
+	BUILD EASY MOCK JAR
+	___________________________
+	    
+	-->
+	<target name="build" depends="build_classes_jar,build_src_jar,build_api_zip" />
+
+	<target name="build_classes_jar" depends="clean,compile,test,javadoc" description="Builds the Easy Mock classes jar file">
+
+		<mkdir dir="${EM_BUILD}" />
+
+		<delete file="${EM_BUILD}/${EM_CLS_JAR_NAME}" />
+
+		<tstamp>
+			<format property="TODAY" pattern="d-MMMM-yyyy hh:mm:ss" locale="en" />
+		</tstamp>
+
+		<jar destfile="${EM_BUILD}/${EM_CLS_JAR_NAME}" basedir="${EM_CLS}">
+			<manifest>
+				<attribute name="Project" value="Easy Mock 2.3 on JDK 1.4" />
+				<attribute name="Built-By" value="Srikanth Seshadri" />
+				<attribute name="Built-On" value="${TODAY}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="build_src_jar" description="Builds the Easy Mock src jar file">
+
+		<mkdir dir="${EM_BUILD}" />
+
+		<delete file="${EM_BUILD}/${EM_SRC_JAR_NAME}" />
+
+		<tstamp>
+			<format property="TODAY" pattern="d-MMMM-yyyy hh:mm:ss" locale="en" />
+		</tstamp>
+
+		<jar destfile="${EM_BUILD}/${EM_SRC_JAR_NAME}" basedir="${EM_SRC}">
+			<manifest>
+				<attribute name="Project" value="Easy Mock 2.3 on JDK 1.4" />
+				<attribute name="Built-By" value="Srikanth Seshadri" />
+				<attribute name="Built-On" value="${TODAY}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="build_api_zip" depends="javadoc" description="Builds the Easy Mock API zip file">
+
+		<mkdir dir="${EM_BUILD}" />
+
+		<delete file="${EM_BUILD}/${EM_API_ZIP_NAME}" />
+
+		<tstamp>
+			<format property="TODAY" pattern="d-MMMM-yyyy hh:mm:ss" locale="en" />
+		</tstamp>
+
+		<jar destfile="${EM_BUILD}/${EM_API_ZIP_NAME}" basedir="${EM_API_DOCS}">
+			<manifest>
+				<attribute name="Project" value="Easy Mock 2.3 on JDK 1.4" />
+				<attribute name="Built-By" value="Srikanth Seshadri" />
+				<attribute name="Built-On" value="${TODAY}" />
+			</manifest>
+		</jar>
+	</target>
+
+
+	<!--
+	_________________
+	  
+	JUNIT TEST CASES
+	_________________
+	    
+	-->
+	<target name="test" depends="compile" description="Executes JUnit Test Cases">
+
+		<javac srcdir="${EM_TEST}" debug="yes" classpathref="test.classpath" />
+
+		<mkdir dir="${EM_TEST_REPORT}/xml" />
+
+		<!-- If files are already there, clean up -->
+		<delete>
+			<fileset dir="${EM_TEST_REPORT}/xml" includes="*.*" />
+		</delete>
+
+		<!--
+				_________________
+	  
+				Run JUNIT
+				_________________
+		-->
+
+		<junit printsummary="false" fork="yes" errorproperty="test.failed" failureproperty="test.failed" showoutput="yes">
+			<classpath refid="test.classpath" />
+			<formatter type="brief" usefile="false" />
+			<formatter type="xml" />
+			<batchtest todir="${EM_TEST_REPORT}/xml">
+				<fileset dir="${EM_TEST}" includes="**/*Test.class" />
+			</batchtest>
+		</junit>
+
+		<mkdir dir="${EM_TEST_REPORT}/html" />
+		<delete>
+			<fileset dir="${EM_TEST_REPORT}/html" includes="*.*" />
+		</delete>
+
+		<!--
+				_________________
+	  
+				Run JUNIT REPORT
+				_________________
+		-->
+		<junitreport todir="${EM_TEST_REPORT}/html">
+			<fileset dir="${EM_TEST_REPORT}/xml">
+				<include name="TEST-*.xml" />
+			</fileset>
+			<report format="frames" styledir="${EM_TEST_REPORT}/xsl" todir="${EM_TEST_REPORT}/html" />
+		</junitreport>
+
+
+		<fail message="Tests failed.Check log and/or reports" if="test.failed" />
+	</target>
+
+
+
+	<!--  
+			_________________
+	  
+			Documentation
+			_________________
+	   -->
+
+	<!-- Java DOC -->
+	<target name="javadoc" description="Creates Javadoc API documentation">
+		<mkdir dir="${EM_API_DOCS}" />
+		<javadoc packagenames="org.easymock.*" sourcepath="${EM_SRC}" defaultexcludes="yes" destdir="${EM_API_DOCS}" author="true" private="true" version="true" use="true" windowtitle="Easy Mock 2.3 On JDK 1.4">
+			<classpath refid="classpath" />
+			<doctitle>
+				<![CDATA[<h1>Easy Mock 2.3 On JDK 1.4 API Documentation</h1>]]></doctitle>
+	</javadoc>
+</target>
+
+
+<!--
+	_________________
+	  
+		Clean
+	_________________
+	    
+	-->
+<target name="clean" description="Cleans all the class/Jar/War files">
+	<delete verbose="true" failonerror="false">
+		<fileset dir="${EM_CLS}" />
+		<fileset dir="${EM_API_DOCS}" />
+		<fileset dir="${EM_BUILD}" includes="*.jar" />
+		<fileset dir="${EM_SRC}" includes="**/*.java.bak" />
+	</delete>
+</target>
+
+
+</project>

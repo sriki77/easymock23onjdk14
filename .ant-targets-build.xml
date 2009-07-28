@@ -1,0 +1,9 @@
+Build
+build_api_zip
+build_classes_jar
+build_src_jar
+clean
+compile
+javadoc
+recompile
+test
